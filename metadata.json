@@ -1,0 +1,7 @@
+{
+  "name": "Bhargava GPT",
+  "description": "A comprehensive GPT model designed to simulate integration with various Large Language Models, featuring a saffron-themed chat interface powered by the Gemini API.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
