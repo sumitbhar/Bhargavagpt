@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ChatMessage, Chat } from './types';
 import Header from './components/Header';
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [language, setLanguage] = useState<string>(localStorage.getItem('bhargava-gpt-language') || 'en-US');
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   // Helper function for translations with a fallback to English
   const t = useCallback((key: string, params: Record<string, string> = {}) => {
@@ -32,6 +34,23 @@ const App: React.FC = () => {
 
       return text;
   }, [language]);
+
+  // Load speech synthesis voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      if (availableVoices.length > 0) {
+        setVoices(availableVoices);
+      }
+    };
+    // The 'voiceschanged' event is fired when the list of supported voices is ready
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices(); // For browsers that load voices instantly
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
 
   // Load chats from local storage on initial render
@@ -85,9 +104,40 @@ const App: React.FC = () => {
             console.error('Speech synthesis error:', event.error);
           }
           onEnd();
+      };
+
+      // Find a suitable female voice
+      const femaleVoices = voices.filter(voice => {
+          const name = voice.name.toLowerCase();
+          // Common keywords for female voices across different platforms
+          return name.includes('female') || name.includes('samantha') || name.includes('zira') || name.includes('femenino');
+      });
+
+      // 1. Try to find a female voice for the specific language (e.g., 'en-US')
+      let selectedVoice = femaleVoices.find(voice => voice.lang === lang);
+
+      // 2. If not found, try for the base language (e.g., 'en' for 'en-US')
+      if (!selectedVoice) {
+          const baseLang = lang.split('-')[0];
+          selectedVoice = femaleVoices.find(voice => voice.lang.startsWith(baseLang));
       }
+
+      // 3. If still not found, pick the first available English female voice as a fallback
+      if (!selectedVoice) {
+          selectedVoice = femaleVoices.find(voice => voice.lang.startsWith('en'));
+      }
+      
+      // 4. Finally, just pick the first available female voice if no English one is found
+      if (!selectedVoice) {
+          selectedVoice = femaleVoices[0];
+      }
+
+      if (selectedVoice) {
+          utterance.voice = selectedVoice;
+      }
+
       window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [voices]);
 
   const handleSendMessage = useCallback(async (text: string, speakCallback: (text: string, onEnd?: () => void) => void) => {
     if (!text.trim()) return;
@@ -132,19 +182,22 @@ const App: React.FC = () => {
         console.error("Error calling runChat:", error);
         aiResponseText = "An error occurred while getting a response. Please check the console for details."
     }
-
+    
+    // Immediately add the AI message to the chat so it's visible while speaking
     const aiMessage: ChatMessage = {
       id: `${Date.now()}-ai`,
       text: aiResponseText,
       sender: 'ai',
     };
+
+    setChats(prev => prev.map(c => 
+      c.id === currentChatId ? { ...c, messages: [...c.messages, aiMessage] } : c
+    ));
+    setIsLoading(false);
     
-    speakCallback(aiResponseText, () => {
-      setChats(prev => prev.map(c => 
-        c.id === currentChatId ? { ...c, messages: [...c.messages, aiMessage] } : c
-      ));
-      setIsLoading(false);
-    });
+    // Use the callback to speak the text. isLoading is already false.
+    speakCallback(aiResponseText);
+
   }, [activeChatId, chats, language]);
 
   const handleVoiceError = useCallback((errorText: string) => {
@@ -168,7 +221,12 @@ const App: React.FC = () => {
   });
 
   const handleTextSendMessage = (text: string) => {
-    handleSendMessage(text, speak);
+    // When sending text, we don't want the AI response to be spoken aloud.
+    // So we pass a dummy speak function that does nothing.
+    // FIX: The previous implementation called baseSpeak with incorrect arguments and
+    // contradicted this comment. It's now fixed to pass a function that does nothing,
+    // preventing the AI response from being spoken for text-based messages.
+    handleSendMessage(text, () => {});
   };
   
   const handleNewChat = () => {

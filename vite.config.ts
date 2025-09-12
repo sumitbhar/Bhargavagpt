@@ -12,26 +12,6 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      },
-      build: {
-        outDir: 'dist',
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: true,
-            drop_debugger: true,
-          },
-        },
-        rollupOptions: {
-          output: {
-            manualChunks: {
-              vendor: ['react', 'react-dom'],
-              gemini: ['@google/genai'],
-              ui: ['react-markdown', 'remark-gfm', 'react-syntax-highlighter']
-            }
-          }
-        },
-        sourcemap: false
       }
     };
 });
