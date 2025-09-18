@@ -55,7 +55,7 @@ const PersonaModal: React.FC<PersonaModalProps> = ({ isOpen, onClose, onSave, cu
             <div className="bg-gray-800/80 backdrop-blur-lg border border-gray-700/50 rounded-lg shadow-xl p-6 w-full max-w-2xl m-4 animate-fade-in-up flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-white">{t('personaModalTitle')}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label="Close">
+                    <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label={t('close')}>
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>

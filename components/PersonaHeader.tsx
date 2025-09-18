@@ -1,15 +1,17 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Chat } from '../types';
 import { PERSONAS, DEFAULT_PERSONA_ID } from '../personas';
 import PersonaModal from './PersonaModal';
+import ModelDisplay from './ModelDisplay';
 
 interface PersonaHeaderProps {
     chat: Chat;
-    onPersonaChange: (personaId?: string, customInstruction?: string) => void;
+    onSettingsChange: (settings: { personaId?: string; customInstruction?: string }) => void;
     t: (key: string, params?: Record<string, string>) => string;
 }
 
-const PersonaHeader: React.FC<PersonaHeaderProps> = ({ chat, onPersonaChange, t }) => {
+const PersonaHeader: React.FC<PersonaHeaderProps> = ({ chat, onSettingsChange, t }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const currentPersona = useMemo(() => {
@@ -22,13 +24,26 @@ const PersonaHeader: React.FC<PersonaHeaderProps> = ({ chat, onPersonaChange, t 
         }
         return PERSONAS.find(p => p.id === (chat.personaId || DEFAULT_PERSONA_ID)) || PERSONAS[0];
     }, [chat.personaId, chat.customInstruction, t]);
+    
+    const handlePersonaSave = (personaId?: string, customInstruction?: string) => {
+        onSettingsChange({ personaId, customInstruction });
+    };
+    
+    const cognitiveStateInfo = {
+        focused: { icon: '🎯', name: t('cognitiveState_focused') },
+        creative: { icon: '✨', name: t('cognitiveState_creative') },
+        critical: { icon: '🧐', name: t('cognitiveState_critical') },
+        synthetic: { icon: '🔄', name: t('cognitiveState_synthetic') },
+    }[chat.cognitiveState];
+
 
     return (
         <>
-            <div className="p-3 border-b border-gray-700/50 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center text-sm z-10">
+            <div className="p-3 border-b border-gray-700/50 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center gap-3 text-sm z-10">
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors bg-gray-800/50 hover:bg-gray-700/70 px-3 py-1.5 rounded-lg"
+                    aria-label={t('currentPersona', { name: t(currentPersona.name) })}
                 >
                     <span className="text-lg">{currentPersona.icon}</span>
                     <span className="font-medium">{t(currentPersona.name)}</span>
@@ -36,12 +51,24 @@ const PersonaHeader: React.FC<PersonaHeaderProps> = ({ chat, onPersonaChange, t 
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
+
+                 <div
+                    className="flex items-center gap-2 text-gray-300 bg-gray-800/50 px-3 py-1.5 rounded-lg cursor-default"
+                    title={`${t('cognitiveState')}: ${cognitiveStateInfo.name}`}
+                 >
+                    <span className="text-lg">{cognitiveStateInfo.icon}</span>
+                    <span className="font-medium">{cognitiveStateInfo.name}</span>
+                </div>
+
+                <ModelDisplay 
+                    activeModelId={chat.modelId}
+                />
             </div>
             {isModalOpen && (
                 <PersonaModal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
-                    onSave={onPersonaChange}
+                    onSave={handlePersonaSave}
                     currentPersonaId={chat.personaId}
                     currentCustomInstruction={chat.customInstruction}
                     t={t}
