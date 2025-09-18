@@ -92,14 +92,18 @@ const App: React.FC = () => {
     }
   }, [activeChatId]);
 
+  const handleModelChange = useCallback((modelId: string) => {
+    if (activeChatId) {
+        setChats(prev => prev.map(c => c.id === activeChatId ? {...c, modelId: modelId} : c));
+    }
+  }, [activeChatId]);
+
   const handleSendMessage = useCallback(async (
     text: string, 
     attachment: Attachment | null = null
   ) => {
     if (!text.trim() && !attachment) return;
     
-    const selectedModelId = routeModel(text, attachment);
-
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: text,
@@ -110,16 +114,17 @@ const App: React.FC = () => {
     let currentChatId = activeChatId;
     let historyForAPI: ChatMessage[] = [];
     let systemInstruction: string | undefined;
-    let modelId = selectedModelId;
-    const titleText = text.trim() || (attachment?.name ?? "Attachment");
+    let modelIdForApi: string;
 
     if (!currentChatId) {
+      modelIdForApi = routeModel(text, attachment);
       currentChatId = Date.now().toString();
+      const titleText = text.trim() || (attachment?.name ?? "Attachment");
       const newChat: Chat = {
         id: currentChatId,
         title: titleText.substring(0, 40) + (titleText.length > 40 ? '...' : ''),
         messages: [userMessage],
-        modelId: modelId,
+        modelId: modelIdForApi,
         cognitiveState: activeCognitiveState,
       };
       setChats(prev => [...prev, newChat]);
@@ -130,11 +135,11 @@ const App: React.FC = () => {
       if (!currentChat) return;
       historyForAPI = currentChat.messages || [];
       systemInstruction = getSystemInstruction(currentChat.personaId, currentChat.customInstruction);
-      modelId = selectedModelId;
+      modelIdForApi = currentChat.modelId;
       setChats(prev =>
         prev.map(c =>
           c.id === currentChatId
-            ? { ...c, messages: [...c.messages, userMessage], modelId: modelId, cognitiveState: activeCognitiveState }
+            ? { ...c, messages: [...c.messages, userMessage], cognitiveState: activeCognitiveState }
             : c
         )
       );
@@ -148,9 +153,10 @@ const App: React.FC = () => {
         historyForAPI,
         language,
         systemInstruction,
-        modelId,
+        modelIdForApi,
         modelManager.downloadedModels,
         activeCognitiveState,
+        t,
         attachment || undefined
       );
 
@@ -174,7 +180,7 @@ const App: React.FC = () => {
       console.error("Error during chat execution:", error);
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-error`,
-        text: "Sorry, an AI error occurred. Please check your configuration and try again.",
+        text: t('error_app_general'),
         sender: 'ai',
       };
       setChats(prev =>
@@ -187,7 +193,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [activeChatId, chats, language, modelManager.downloadedModels, activeCognitiveState]);
+  }, [activeChatId, chats, language, modelManager.downloadedModels, activeCognitiveState, t]);
 
   const handleAnalyzeResponse = useCallback(async (messageId: string, lens: CognitiveState) => {
     if (!activeChat) return;
@@ -202,7 +208,7 @@ const App: React.FC = () => {
     setIsLoading(true);
 
     try {
-        const analysisResponse = await runAnalysis(messageToAnalyze, lens, language);
+        const analysisResponse = await runAnalysis(messageToAnalyze, lens, language, t);
 
         const analysisMessage: ChatMessage = {
             id: `${Date.now()}-analysis`,
@@ -233,8 +239,23 @@ const App: React.FC = () => {
     },
     onError: (error) => {
         console.error("Voice assistant error:", error);
+        if (activeChatId) {
+            const errorMessage: ChatMessage = {
+                id: `${Date.now()}-error`,
+                text: error,
+                sender: 'ai',
+            };
+            setChats(prev =>
+                prev.map(c =>
+                    c.id === activeChatId
+                        ? { ...c, messages: [...c.messages, errorMessage] }
+                        : c
+                )
+            );
+        }
     },
     language: language,
+    t: t,
   });
 
   const handleVoiceClick = () => {
@@ -316,6 +337,8 @@ const App: React.FC = () => {
               <PersonaHeader 
                 chat={activeChat}
                 onSettingsChange={handleSettingsChange}
+                onModelChange={handleModelChange}
+                downloadedModels={modelManager.downloadedModels}
                 t={t}
               />
               <ChatWindow 

@@ -28,8 +28,8 @@ const ModelManagerModal: React.FC<ModelManagerModalProps> = ({ isOpen, onClose, 
     const handleExportModel = (model: LlmModel) => {
         const modelData = JSON.stringify({
             id: model.id,
-            name: model.name,
-            provider: model.provider,
+            name: t(model.name),
+            provider: t(model.provider),
             exportedAt: new Date().toISOString(),
         }, null, 2);
 
@@ -68,14 +68,14 @@ const ModelManagerModal: React.FC<ModelManagerModalProps> = ({ isOpen, onClose, 
                             <div key={model.id} className="bg-gray-900/50 p-4 rounded-lg flex items-center justify-between">
                                 <div>
                                     <h3 className="font-semibold text-white flex items-center gap-2">
-                                        {model.name}
+                                        {t(model.name)}
                                         {status === 'downloaded' && (
                                             <span className="text-xs bg-green-600 text-white font-bold py-0.5 px-2 rounded-full">
                                                 {t('modelStatusOffline')}
                                             </span>
                                         )}
                                     </h3>
-                                    <p className="text-sm text-gray-400">{model.provider}</p>
+                                    <p className="text-sm text-gray-400">{t(model.provider)}</p>
                                 </div>
                                 <div className="min-w-[12rem] flex justify-end items-center">
                                     {!model.isDownloadable ? (

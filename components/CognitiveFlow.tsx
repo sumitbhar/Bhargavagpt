@@ -21,7 +21,7 @@ const CognitiveFlow: React.FC<CognitiveFlowProps> = ({ state, t }) => {
 
   useEffect(() => {
     setCompletedSteps([]); // Reset on state change
-    const timeouts: NodeJS.Timeout[] = [];
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
     
     steps.forEach((_, index) => {
       const timeout = setTimeout(() => {

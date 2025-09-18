@@ -38,7 +38,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ activeModelId, onModelCha
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        <span className="font-medium truncate">{activeModel.name}</span>
+        <span className="font-medium truncate">{t(activeModel.name)}</span>
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
@@ -61,8 +61,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ activeModelId, onModelCha
                 role="menuitem"
               >
                 <div className="flex-1">
-                    <p className="font-semibold">{model.name}</p>
-                    <p className="text-xs opacity-80">{model.provider}</p>
+                    <p className="font-semibold">{t(model.name)}</p>
+                    <p className="text-xs opacity-80">{t(model.provider)}</p>
                 </div>
                 {downloadedModels.has(model.id) && (
                     <span className="ml-2 text-xs bg-green-600 text-white font-bold py-0.5 px-2 rounded-full">

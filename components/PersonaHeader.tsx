@@ -3,15 +3,17 @@ import React, { useState, useMemo } from 'react';
 import type { Chat } from '../types';
 import { PERSONAS, DEFAULT_PERSONA_ID } from '../personas';
 import PersonaModal from './PersonaModal';
-import ModelDisplay from './ModelDisplay';
+import ModelSelector from './ModelSelector';
 
 interface PersonaHeaderProps {
     chat: Chat;
     onSettingsChange: (settings: { personaId?: string; customInstruction?: string }) => void;
+    onModelChange: (modelId: string) => void;
+    downloadedModels: Set<string>;
     t: (key: string, params?: Record<string, string>) => string;
 }
 
-const PersonaHeader: React.FC<PersonaHeaderProps> = ({ chat, onSettingsChange, t }) => {
+const PersonaHeader: React.FC<PersonaHeaderProps> = ({ chat, onSettingsChange, onModelChange, downloadedModels, t }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const currentPersona = useMemo(() => {
@@ -60,8 +62,11 @@ const PersonaHeader: React.FC<PersonaHeaderProps> = ({ chat, onSettingsChange, t
                     <span className="font-medium">{cognitiveStateInfo.name}</span>
                 </div>
 
-                <ModelDisplay 
+                <ModelSelector 
                     activeModelId={chat.modelId}
+                    onModelChange={onModelChange}
+                    downloadedModels={downloadedModels}
+                    t={t}
                 />
             </div>
             {isModalOpen && (

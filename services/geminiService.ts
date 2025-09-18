@@ -55,14 +55,16 @@ export const runChat = async (
   modelId: string,
   downloadedModels: Set<string>,
   cognitiveState: CognitiveState,
+  t: (key: string, params?: Record<string, string>) => string,
   attachment?: Attachment
 ): Promise<AiResponse> => {
   const selectedModel = MODELS.find(m => m.id === modelId);
 
   if (!navigator.onLine) {
+    const modelName = selectedModel ? t(selectedModel.name) : t('unknown_model');
     const offlineText = selectedModel && downloadedModels.has(selectedModel.id)
-      ? `You are currently offline. This is a simulated response from the locally-run ${selectedModel.name} model. Reconnect to the internet for full functionality.`
-      : `You are currently offline. The selected model, ${selectedModel?.name || 'Unknown Model'}, is not downloaded. Please connect to the internet or select a downloaded model to continue.`;
+      ? t('offline_response_downloaded', { modelName })
+      : t('offline_response_not_downloaded', { modelName });
     return { text: offlineText };
   }
 
@@ -73,6 +75,12 @@ export const runChat = async (
     const cognitiveInstruction = getCognitiveStateInstruction(cognitiveState);
     const baseInstruction = systemInstruction || DEFAULT_SYSTEM_INSTRUCTION;
     const finalInstruction = `${cognitiveInstruction}\n\n${baseInstruction}\n\nYour responses should be visually appealing and well-structured. You must respond in ${languageName}.`;
+
+    let responsePrefix = '';
+    if (selectedModel?.isExternal) {
+        const modelName = selectedModel ? t(selectedModel.name) : modelId;
+        responsePrefix = `*(This response is a simulation of **${modelName}**. The request was processed by Google Gemini.)*\n\n`;
+    }
 
     const geminiHistory: Content[] = history.map(msg => {
       const parts: Part[] = [];
@@ -135,7 +143,7 @@ export const runChat = async (
                 };
             }
         }
-        return { text: responseText, attachment: responseAttachment };
+        return { text: responsePrefix + responseText, attachment: responseAttachment };
     }
 
     const useSearch = shouldUseGoogleSearch(message);
@@ -165,15 +173,15 @@ export const runChat = async (
 
     if (!responseText || responseText.trim() === '') {
         console.warn("Gemini API returned an empty response, possibly due to safety filters.");
-        responseText = "I am unable to provide a response to this request. Please try a different topic.";
+        responseText = t('error_gemini_api_empty');
     }
 
-    return { text: responseText, groundingChunks };
+    return { text: responsePrefix + responseText, groundingChunks };
   } catch (error) {
     console.error("Error in API call:", error);
-    let errorText = "Sorry, an error occurred while connecting to the AI. Please check your API key and network connection, then try again.";
+    let errorText = t('error_gemini_api_general');
     if (error instanceof Error && error.message.includes('API key not valid')) {
-       errorText = "Sorry, your API key is not valid. Please check your configuration.";
+       errorText = t('error_gemini_api_key');
     }
     return { text: errorText };
   }
@@ -183,6 +191,7 @@ export const runAnalysis = async (
     messageToAnalyze: ChatMessage,
     analysisLens: CognitiveState,
     language: string,
+    t: (key: string) => string
 ): Promise<AiResponse> => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -213,6 +222,6 @@ Begin your response with a clear header acknowledging the analysis.`;
 
     } catch (error) {
         console.error("Error in analysis API call:", error);
-        return { text: "Sorry, an error occurred while performing the analysis." };
+        return { text: t('error_analysis_api') };
     }
 };
