@@ -46,7 +46,6 @@ export interface LlmModel {
   id: string;
   name: string;
   provider: string;
-  isExternal: boolean;
   isDownloadable: boolean;
 }
 

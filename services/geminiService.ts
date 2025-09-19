@@ -76,12 +76,6 @@ export const runChat = async (
     const baseInstruction = systemInstruction || DEFAULT_SYSTEM_INSTRUCTION;
     const finalInstruction = `${cognitiveInstruction}\n\n${baseInstruction}\n\nYour responses should be visually appealing and well-structured. You must respond in ${languageName}.`;
 
-    let responsePrefix = '';
-    if (selectedModel?.isExternal) {
-        const modelName = selectedModel ? t(selectedModel.name) : modelId;
-        responsePrefix = `*(This response is a simulation of **${modelName}**. The request was processed by Google Gemini.)*\n\n`;
-    }
-
     const geminiHistory: Content[] = history.map(msg => {
       const parts: Part[] = [];
       if (msg.attachment) {
@@ -117,8 +111,6 @@ export const runChat = async (
 
     const contents: Content[] = [...geminiHistory, { role: 'user', parts: currentUserParts }];
     
-    const apiModelId = selectedModel && !selectedModel.isExternal ? selectedModel.id : 'gemini-2.5-flash';
-
     if (modelId === 'gemini-2.5-flash-image-preview') {
         const response = await ai.models.generateContent({
             model: modelId,
@@ -143,7 +135,7 @@ export const runChat = async (
                 };
             }
         }
-        return { text: responsePrefix + responseText, attachment: responseAttachment };
+        return { text: responseText, attachment: responseAttachment };
     }
 
     const useSearch = shouldUseGoogleSearch(message);
@@ -156,7 +148,7 @@ export const runChat = async (
     }
 
     const response = await ai.models.generateContent({
-        model: apiModelId,
+        model: modelId,
         contents: contents,
         config: config,
     });
@@ -176,7 +168,7 @@ export const runChat = async (
         responseText = t('error_gemini_api_empty');
     }
 
-    return { text: responsePrefix + responseText, groundingChunks };
+    return { text: responseText, groundingChunks };
   } catch (error) {
     console.error("Error in API call:", error);
     let errorText = t('error_gemini_api_general');
